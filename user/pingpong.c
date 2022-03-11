@@ -35,8 +35,8 @@ main()
         
         write(p2c[W],&msg,sizeof(char));
         wait((int *) 0);
-        read(c2p[R],&msg,sizeof(char))
-        fprintf(1,"%d: received pong\n", getpid())
+        read(c2p[R],&msg,sizeof(char));
+        fprintf(1,"%d: received pong\n", getpid());
         close(p2c[W]);
         close(c2p[R]);
         exit(0);
