@@ -1,7 +1,7 @@
 #include "kernel/types.h"
 #include "user/user.h"
-#define R = 0; //read form pipe
-#define W = 1; //write to pipe
+#define R 0 //read form pipe
+#define W 1 //write to pipe
 int 
 main()
 {
@@ -15,7 +15,7 @@ main()
 
     int ppid = fork();
     //child process
-    if (ppid = 0){
+    if (ppid == 0){
         //close unused pipe ends
         close(c2p[R]);
         close(p2c[W]);
