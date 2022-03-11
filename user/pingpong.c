@@ -1,5 +1,5 @@
+#include "kernel/types.h"
 #include "user/user.h"
-
 #define R = 0; //read form pipe
 #define W = 1; //write to pipe
 int 
