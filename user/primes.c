@@ -15,7 +15,6 @@ void primes(int lp[2])
         pipe(rp); // 当前进程的右管道
         int data;
         while (read(lp[RD],&data,sizeof(int)) == sizeof(int)) {
-            printf("call subprocess");
              // 将无法整除的数据传递入右管道
              if (data % first){
                  write(rp[WR],&data,sizeof(int));
@@ -25,7 +24,6 @@ void primes(int lp[2])
         close(rp[WR]);
         //创建子进程处理，递归处理
         if (fork() == 0) {
-            // printf("call subprocess");
             primes(rp);    
         } else {
             close(rp[RD]);
