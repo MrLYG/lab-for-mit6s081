@@ -57,7 +57,6 @@ find(char *path, char *filename)
 int
 main(int argc, char *argv[])
 {
-  int i;
 
   if(argc < 3){
     fprintf(2, "usage: find <directory> <filename>\n");
