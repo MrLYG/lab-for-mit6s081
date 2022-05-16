@@ -11,6 +11,9 @@ static int loadseg(pde_t *pgdir, uint64 addr, struct inode *ip, uint offset, uin
 
 
 void vmprint_helper(pagetable_t pagetable,int level) {
+  if (level < 0) {
+    return ;
+  }
   // each levev has 512 PTEs
   for (int i = 0; i < 512 ; i++) {
     pte_t pte = pagetable[i];
