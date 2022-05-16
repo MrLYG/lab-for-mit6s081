@@ -452,11 +452,14 @@ void vmprint_helper(pagetable_t pagetable,int level) {
     pte_t pte = pagetable[i];
     if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
 
-      if (level == 1) {
+      if (level == 2) {
         printf("..");
       }
-      if (level == 0) {
+      if (level == 1) {
         printf(".. ..");
+      }
+      if (level == 0) {
+        printf(".. .. ..");
       }
 
       // this PTE points to a lower-level page table.
