@@ -446,7 +446,7 @@ void vmprint_helper(pagetable_t pagetable,int level) {
     return ;
   }
   if (level == 2) {
-    printf("page table %p",pagetable);
+    printf("page table %p\n",pagetable);
   }
   for(int i = 0; i < 512; i++){
     pte_t pte = pagetable[i];
