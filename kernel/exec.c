@@ -20,10 +20,14 @@ void vmprint_helper(pagetable_t pagetable,int level) {
     if (pte & PTE_V) {
       uint64 pa = PTE2PA(pte);
       
-      int j = level;
-      while(2 > j) {
-        printf("..");
-        j ++ ;
+      // int j = level;
+      // while(2 > j) {
+      //   printf("..");
+      //   j ++ ;
+      // }
+      for (int j = 2; j > level; --j)
+      {
+        printf(".. ");
       }
       printf("%d: pte %p pa %p\n", i, pte, pa);
       vmprint_helper((pagetable_t)pa,level --);
