@@ -10,34 +10,6 @@
 static int loadseg(pde_t *pgdir, uint64 addr, struct inode *ip, uint offset, uint sz);
 
 
-void vmprint_helper(pagetable_t pagetable,int level) {
-  if (level < 0) {
-    return ;
-  }
-  // each levev has 512 PTEs
-  for (int i = 0; i < 512 ; i++) {
-    pte_t pte = pagetable[i];
-    if (pte & PTE_V) {
-      uint64 pa = PTE2PA(pte);
-      
-      // int j = level;
-      // while(2 > j) {
-      //   printf("..");
-      //   j ++ ;
-      // }
-      for (int j = 2; j > level; --j)
-      {
-        printf(".. ");
-      }
-      printf("%d: pte %p pa %p\n", i, pte, pa);
-      vmprint_helper((pagetable_t)pa,level --);
-    }
-  }
-}
-
-void vmprint(pagetable_t pagetable) {
-  vmprint_helper(pagetable, 2);
-}
 
 int
 exec(char *path, char **argv)
