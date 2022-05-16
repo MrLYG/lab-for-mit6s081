@@ -115,6 +115,9 @@ exec(char *path, char **argv)
   p->trapframe->epc = elf.entry;  // initial program counter = main
   p->trapframe->sp = sp; // initial stack pointer
   proc_freepagetable(oldpagetable, oldsz);
+  
+  // print page table
+  if(p->pid==1) vmprint(p->pagetable);
 
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 
@@ -127,6 +130,30 @@ exec(char *path, char **argv)
   }
   return -1;
 }
+void vmprint_helper(pagetable_t pagetable,int level) {
+  // each levev has 512 PTEs
+  for (int i = 0; i < 512 ; i++) {
+    pte_t pte = pagetable[i];
+    if (pte & PTE_V) {
+      uint64 pa = PTE2PA(pte);
+      
+      int j = level;
+      while(2 > j) {
+        print("..");
+        j ++ ;
+      }
+      printf("%d: pte %p pa %p\n", i, pte, pa);
+      vmprint_helper((pagetable_t)pa,level --);
+    }
+  }
+}
+
+void vmprint(pagetable_t pagetable) {
+  vmprint_helper(pagetable, 2);
+}
+
+
+
 
 // Load a program segment into pagetable at virtual address va.
 // va must be page-aligned
@@ -155,3 +182,4 @@ loadseg(pagetable_t pagetable, uint64 va, struct inode *ip, uint offset, uint sz
   
   return 0;
 }
+
