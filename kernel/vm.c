@@ -440,14 +440,13 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+
 void vmprint_helper(pagetable_t pagetable,int level) {
-  
   if (level > 2) {
     return;
   }
   for(int i = 0; i < 512; i++){
     pte_t pte = pagetable[i];
-
     if((pte & PTE_V) && (pte & (PTE_R | PTE_W | PTE_X)) == 0){
       if (level == 0) {
         printf("..");
@@ -476,3 +475,45 @@ void vmprint(pagetable_t pagetable) {
   vmprint_helper(pagetable, 0);
 }
 
+
+/*
+ * create a direct-map page table for each of proc.
+ */
+pagetable_t
+proc_kvminit()
+{
+  //create an empty user page table which will store a copy of kernel page.
+  pagetable_t kpagetable = uvmcreate();
+
+
+  // uart registers
+  proc_kvmmap(kpagetable, UART0, UART0, PGSIZE, PTE_R | PTE_W);
+
+  // virtio mmio disk interface
+  proc_kvmmap(kpagetable, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+
+  // CLINT
+  proc_kvmmap(kpagetable, CLINT, CLINT, 0x10000, PTE_R | PTE_W);
+
+  // PLIC
+  proc_kvmmap(kpagetable, PLIC, PLIC, 0x400000, PTE_R | PTE_W);
+
+  // map kernel text executable and read-only.
+  proc_kvmmap(kpagetable, KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
+
+  // map kernel data and the physical RAM we'll make use of.
+  proc_kvmmap(kpagetable, (uint64)etext, (uint64)etext, PHYSTOP-(uint64)etext, PTE_R | PTE_W);
+
+  // map the trampoline for trap entry/exit to
+  // the highest virtual address in the kernel.
+  proc_kvmmap(kpagetable, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
+  return kpagetable;
+}
+
+// add a mapping to a page table.
+void
+proc_kvmmap(pagetable_t kpagetable,uint64 va, uint64 pa, uint64 sz, int perm)
+{
+  if(mappages(kpagetable, va, sz, pa, perm) != 0)
+    panic("kvmmap");
+}
