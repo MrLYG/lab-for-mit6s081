@@ -223,7 +223,7 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
 // 模仿vm.c中的freewalk，但注意物理地址没有释放
 // 最后一层叶节点没有释放，标志位并没有重置
 // 故需要修改一下
-void 
+void
 proc_freekpt(pagetable_t pagetable)
 {
   // there are 2^9 = 512 PTEs in a page table.
