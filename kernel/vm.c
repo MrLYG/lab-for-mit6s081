@@ -17,31 +17,27 @@ extern char trampoline[]; // trampoline.S
 
 /*
  * create a direct-map page table for the kernel.
+ * 用于创建kernel的页表，使用kvmmap来设置映射
  */
 void
 kvminit()
 {
   kernel_pagetable = (pagetable_t) kalloc();
+  //给根页表的所有位赋值位0
   memset(kernel_pagetable, 0, PGSIZE);
-
-  // uart registers
+  // uart registers 
+  // pa va size perm
   kvmmap(UART0, UART0, PGSIZE, PTE_R | PTE_W);
-
   // virtio mmio disk interface
   kvmmap(VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
-
   // CLINT
   kvmmap(CLINT, CLINT, 0x10000, PTE_R | PTE_W);
-
   // PLIC
   kvmmap(PLIC, PLIC, 0x400000, PTE_R | PTE_W);
-
   // map kernel text executable and read-only.
   kvmmap(KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
-
   // map kernel data and the physical RAM we'll make use of.
   kvmmap((uint64)etext, (uint64)etext, PHYSTOP-(uint64)etext, PTE_R | PTE_W);
-
   // map the trampoline for trap entry/exit to
   // the highest virtual address in the kernel.
   kvmmap(TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
@@ -49,10 +45,13 @@ kvminit()
 
 // Switch h/w page table register to the kernel's page table,
 // and enable paging.
+// 将kernel的页表的物理地址写入CPU的寄存器satp中，
+// 然后CPU就可以用这个kernel页表来翻译地址了
 void
 kvminithart()
 {
   w_satp(MAKE_SATP(kernel_pagetable));
+  // FLUSH TLB
   sfence_vma();
 }
 
@@ -68,6 +67,7 @@ kvminithart()
 //   21..29 -- 9 bits of level-1 index.
 //   12..20 -- 9 bits of level-0 index.
 //    0..11 -- 12 bits of byte offset within the page.
+// 给定一个虚拟地址和一个页表，返回一个PTE指针
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
@@ -145,6 +145,8 @@ kvmpa(uint64 va)
 // physical addresses starting at pa. va and size might not
 // be page-aligned. Returns 0 on success, -1 if walk() couldn't
 // allocate a needed page-table page.
+// 给虚拟地址创建一个PTE 
+// 给定一个页表、一个虚拟地址和物理地址，创建一个PTE以实现相应的映射
 int
 mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 {

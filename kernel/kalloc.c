@@ -23,17 +23,21 @@ struct {
   struct run *freelist;
 } kmem;
 
-void
-kinit()
+//初始化内核到PHYSTOP之间的空闲页链表
+void kinit()
 {
   initlock(&kmem.lock, "kmem");
+  // end：first address after kernel
   freerange(end, (void*)PHYSTOP);
 }
 
-void
-freerange(void *pa_start, void *pa_end)
+/**
+ * @brief  kinit调用freearange，从内核的结束到PHYSTOP，通过kfree将每一页空闲内存加到空闲链表中
+ */
+void freerange(void *pa_start, void *pa_end)
 {
   char *p;
+  // 因为PTE对应地址时4096或4096的倍数，所以freearange使用PGROUNDUP来确保对齐
   p = (char*)PGROUNDUP((uint64)pa_start);
   for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
     kfree(p);
@@ -43,6 +47,7 @@ freerange(void *pa_start, void *pa_end)
 // which normally should have been returned by a
 // call to kalloc().  (The exception is when
 // initializing the allocator; see kinit above.)
+// 传入物理地址将空闲页加入空闲链表
 void
 kfree(void *pa)
 {
