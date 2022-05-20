@@ -23,13 +23,18 @@ struct {
   struct run *freelist;
 } kmem;
 
+
 void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
+  // end：first address after kernel
   freerange(end, (void*)PHYSTOP);
 }
 
+/**
+ * @brief 
+ */
 void
 freerange(void *pa_start, void *pa_end)
 {
@@ -43,6 +48,7 @@ freerange(void *pa_start, void *pa_end)
 // which normally should have been returned by a
 // call to kalloc().  (The exception is when
 // initializing the allocator; see kinit above.)
+// 传入物理地址将空闲也加入空闲链表
 void
 kfree(void *pa)
 {
