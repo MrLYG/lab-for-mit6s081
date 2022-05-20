@@ -20,6 +20,7 @@ static void wakeup1(struct proc *chan);
 static void freeproc(struct proc *p);
 
 extern char trampoline[]; // trampoline.S
+extern pagetable_t kernel_pagetable;
 
 // initialize the proc table at boot time.
 void procinit(void)
@@ -120,13 +121,13 @@ found:
     return 0;
   }
 
-  // Set up new context to start executing at forkret,
-  // which returns to user space.
-  memset(&p->context, 0, sizeof(p->context));
-  p->context.ra = (uint64)forkret;
-  p->context.sp = p->kstack + PGSIZE;
 
   p->kpagetable = proc_kvminit();
+  if(p->kpagetable == 0){
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
 
   // Allocate a page for the process's kernel stack.
   // Map it high in memory, followed by an invalid
@@ -135,8 +136,17 @@ found:
   if(pa == 0)
       panic("kalloc");
   uint64 va = KSTACK((int) (p - proc));
-  uvmmap(p->kpagetable, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+  proc_kvmmap(p->kpagetable, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
   p->kstack = va;
+
+
+  // Set up new context to start executing at forkret,
+  // which returns to user space.
+  memset(&p->context, 0, sizeof(p->context));
+  p->context.ra = (uint64)forkret;
+  p->context.sp = p->kstack + PGSIZE;
+
+  
   return p;
 }
 
@@ -151,6 +161,10 @@ freeproc(struct proc *p)
   p->trapframe = 0;
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
+
+  // 删除 进程的kernel pagetable
+  if (p->kpagetable)
+    proc_freekpt(p->kpagetable);
   p->pagetable = 0;
   p->sz = 0;
   p->pid = 0;
@@ -204,6 +218,38 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
   uvmfree(pagetable, sz);
 }
+
+// free kernel pagetable
+// 模仿vm.c中的freewalk，但注意物理地址没有释放
+// 最后一层叶节点没有释放，标志位并没有重置
+// 故需要修改一下
+void 
+proc_freekpt(pagetable_t pagetable)
+{
+  // there are 2^9 = 512 PTEs in a page table.
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    if((pte & PTE_V)){
+      pagetable[i] = 0;
+      if ((pte & (PTE_R|PTE_W|PTE_X)) == 0)
+      {
+        uint64 child = PTE2PA(pte);
+        proc_freekpt((pagetable_t)child);
+      }
+    } else if(pte & PTE_V){
+      panic("proc free kpt: leaf");
+    }
+  }
+  kfree((void*)pagetable);
+
+}
+
+
+
+
+
+
+
 
 // a user program that calls exec("/init")
 // od -t xC initcode
@@ -498,6 +544,10 @@ scheduler(void)
     }
     if(found == 0) {
       intr_on();
+      // 没有进程在运行则使用内核原来的kernel pagtable
+      // 只有内核的页表才保存进程数组
+      w_satp(MAKE_SATP(kernel_pagetable));
+      sfence_vma();
       asm volatile("wfi");
     }
   }
